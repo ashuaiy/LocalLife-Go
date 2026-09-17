@@ -59,3 +59,39 @@ func TestLoadRejectsInvalidConfigurationWithoutLeakingValues(t *testing.T) {
 		t.Fatal("idle pool cannot exceed open pool")
 	}
 }
+
+func TestAuthConfigurationDefaultsAndDevModeGuard(t *testing.T) {
+	cfg, err := LoadFrom(lookup(nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Auth.DevCodes || cfg.Auth.CodeTTL != 5*time.Minute || cfg.Auth.CodeCooldown != time.Minute || cfg.Auth.SessionTTL != 30*time.Minute || cfg.Auth.MaxCodeAttempts != 5 {
+		t.Fatal("unexpected auth defaults")
+	}
+	for _, host := range []string{"0.0.0.0:8080", ":8080", "192.168.1.2:8080"} {
+		if _, err := LoadFrom(lookup(map[string]string{"AUTH_DEV_CODES": "true", "HTTP_ADDR": host})); err == nil {
+			t.Fatalf("dev codes exposed on %s", host)
+		}
+	}
+	for _, host := range []string{"127.0.0.1:8080", "[::1]:8080", "localhost:8080"} {
+		if _, err := LoadFrom(lookup(map[string]string{"AUTH_DEV_CODES": "true", "HTTP_ADDR": host})); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for key, value := range map[string]string{"AUTH_DEV_CODES": "bad", "AUTH_CODE_TTL": "0s", "AUTH_CODE_COOLDOWN": "-1s", "AUTH_SESSION_TTL": "0s", "AUTH_MAX_CODE_ATTEMPTS": "0"} {
+		if _, err := LoadFrom(lookup(map[string]string{key: value})); err == nil {
+			t.Fatalf("invalid %s accepted", key)
+		}
+	}
+}
+
+func TestAuthDurationsHaveWholeSecondMinimum(t *testing.T) {
+	for _, key := range []string{"AUTH_CODE_TTL", "AUTH_CODE_COOLDOWN", "AUTH_SESSION_TTL"} {
+		if _, err := LoadFrom(lookup(map[string]string{key: "500ms"})); err == nil {
+			t.Fatalf("%s must reject a duration below one second", key)
+		}
+		if _, err := LoadFrom(lookup(map[string]string{key: "1s"})); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

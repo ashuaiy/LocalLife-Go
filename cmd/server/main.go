@@ -8,8 +8,12 @@ import (
 	"syscall"
 
 	"github.com/ashuaiy/local-life-go/internal/app"
+	"github.com/ashuaiy/local-life-go/internal/cache"
 	"github.com/ashuaiy/local-life-go/internal/config"
+	"github.com/ashuaiy/local-life-go/internal/handler"
 	"github.com/ashuaiy/local-life-go/internal/platform"
+	"github.com/ashuaiy/local-life-go/internal/repository"
+	"github.com/ashuaiy/local-life-go/internal/service"
 )
 
 func main() {
@@ -38,8 +42,9 @@ func run(logger *slog.Logger) error {
 			logger.Error("connection pool close failed")
 		}
 	}()
+	auth := service.NewAuth(repository.NewUser(deps.DB), cache.NewAuth(deps.Redis), cfg.Auth)
 	return app.Serve(ctx, cfg, logger, map[string]app.Check{
 		"mysql": deps.SQL.PingContext,
 		"redis": func(ctx context.Context) error { return deps.Redis.Ping(ctx).Err() },
-	})
+	}, handler.NewAuth(auth).Register)
 }

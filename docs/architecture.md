@@ -1,6 +1,6 @@
-# Phase 0 架构与边界
+# 架构与模块边界
 
-当前是模块化单体的启动基础。业务层在 Phase 1 按模块逐步增加；目前没有登录、商户查询或秒杀接口。
+当前包含模块化单体的启动基础和用户认证模块。商户、Feed、优惠券与秒杀等业务仍按模块逐步增加。
 
 ```text
 cmd/server
@@ -9,6 +9,7 @@ cmd/server
   -> app.Serve：绑定端口、运行 Hertz、监听生命周期取消
       -> middleware.HTTP：Request ID、协作式 deadline、恢复、访问日志
       -> /healthz、/readyz、统一 404 / 405
+      -> Auth Handler -> Auth Service -> User Repository / Redis Auth Store
       -> response：HTTP 状态与 JSON envelope
 
 cmd/migrate up
@@ -28,12 +29,17 @@ cmd/migrate up
 | `internal/platform` | GORM、database/sql、go-redis 实例及连接池 |
 | `internal/migration` | 迁移执行、锁、资源释放 |
 | `internal/middleware` | Request ID、deadline、恢复、访问日志 |
+| `internal/handler` | 认证请求解析、校验、响应映射 |
+| `internal/service` | 验证码、登录、Session 与用户查询流程 |
+| `internal/repository` | GORM 用户持久化与并发注册去重 |
+| `internal/cache` | Redis 验证码脚本和固定 TTL 会话 |
+| `internal/model` | 数据库实体 |
 | `pkg/apperror` | 与业务实现无关的错误分类及公开消息 |
 | `pkg/response` | `code/message/data/request_id` HTTP envelope |
 | `migrations` | 八张表的 SQL 和编译时嵌入资源 |
 | `tests/integration` | 真实 MySQL/Redis 的显式 opt-in 测试 |
 
-后续 Handler → Service → Repository 沿用 `context.Context`，GORM 使用 `WithContext(ctx)`，Redis 调用传入同一个 ctx。Handler 不直接执行 SQL。当前健康检查是基础设施入口，不承载业务。
+Handler → Service → Repository 沿用 `context.Context`，GORM 使用 `WithContext(ctx)`，Redis 调用传入同一个 ctx。Handler 不直接执行 SQL。健康检查是基础设施入口，不承载业务。
 
 ## 请求与生命周期
 
@@ -47,7 +53,7 @@ HTTP deadline 是协作式取消：Handler 和底层 I/O 必须遵守 context。
 
 ## 数据库约定
 
-- MySQL 是权威数据来源；Redis 目前仅建立客户端和检查连通性。
+- MySQL 是权威数据来源；Redis 当前保存验证码与 Session，并支持连通性检查。
 - 时间使用 UTC，`DATETIME(3)` 保留毫秒；金额使用整数分。
 - `voucher_order` 有 `UNIQUE(user_id, voucher_id)`；`seckill_voucher` 有非负库存和有效时间窗约束。
 - 显式外键保证关系完整性。业务增长后若要移除外键，必须通过新迁移和 ADR 说明一致性责任如何转移。
@@ -55,7 +61,7 @@ HTTP deadline 是协作式取消：Handler 和底层 I/O 必须遵守 context。
 - 不调用 GORM AutoMigrate。DDL 失败可能产生部分已提交表，迁移库会保留 dirty 标记；修复前检查实际 schema，不自动 force 或删除库。
 - `migrate up` 是当前唯一 CLI 操作；down SQL 用于审查和受控回滚，不由启动流程执行。
 
-设计取舍见 [ADR 001](adr/001-modular-monolith.md) 与 [ADR 002](adr/002-bootstrap-lifecycle-and-migrations.md)。
+设计取舍见 [ADR 001](adr/001-modular-monolith.md)、[ADR 002](adr/002-bootstrap-lifecycle-and-migrations.md) 与 [ADR 003](adr/003-redis-session-auth.md)。接口契约见 [用户认证接口](api/auth.md)。
 
 ## 官方参考
 

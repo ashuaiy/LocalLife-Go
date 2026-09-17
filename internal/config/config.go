@@ -14,6 +14,7 @@ type Config struct {
 	HTTP              HTTP
 	MySQL             MySQL
 	Redis             Redis
+	Auth              Auth
 	StartupTimeout    time.Duration
 	ShutdownTimeout   time.Duration
 	DependencyTimeout time.Duration
@@ -33,6 +34,12 @@ type MySQL struct {
 type Redis struct {
 	Addr, Password string
 	DB, PoolSize   int
+}
+
+type Auth struct {
+	DevCodes                          bool
+	CodeTTL, CodeCooldown, SessionTTL time.Duration
+	MaxCodeAttempts                   int
 }
 
 func Load() (Config, error) { return LoadFrom(os.LookupEnv) }
@@ -96,6 +103,30 @@ func LoadFrom(lookup func(string) (string, bool)) (Config, error) {
 		invalid("MYSQL_MAX_IDLE_CONNS", "must not exceed MYSQL_MAX_OPEN_CONNS")
 	}
 	cfg.Redis = Redis{Addr: addr("REDIS_ADDR", "127.0.0.1:6379"), Password: str("REDIS_PASSWORD", ""), DB: integer("REDIS_DB", 0, 0), PoolSize: integer("REDIS_POOL_SIZE", 10, 1)}
+	devCodes, err := strconv.ParseBool(str("AUTH_DEV_CODES", "false"))
+	if err != nil {
+		invalid("AUTH_DEV_CODES", "must be true or false")
+	}
+	cfg.Auth = Auth{DevCodes: devCodes, CodeTTL: duration("AUTH_CODE_TTL", 5*time.Minute), CodeCooldown: duration("AUTH_CODE_COOLDOWN", time.Minute), SessionTTL: duration("AUTH_SESSION_TTL", 30*time.Minute), MaxCodeAttempts: integer("AUTH_MAX_CODE_ATTEMPTS", 5, 1)}
+	for _, setting := range []struct {
+		name  string
+		value time.Duration
+	}{
+		{"AUTH_CODE_TTL", cfg.Auth.CodeTTL},
+		{"AUTH_CODE_COOLDOWN", cfg.Auth.CodeCooldown},
+		{"AUTH_SESSION_TTL", cfg.Auth.SessionTTL},
+	} {
+		if setting.value < time.Second {
+			invalid(setting.name, "must be at least 1s")
+		}
+	}
+	if devCodes {
+		host, _, _ := net.SplitHostPort(cfg.HTTP.Addr)
+		ip := net.ParseIP(host)
+		if host != "localhost" && (ip == nil || !ip.IsLoopback()) {
+			invalid("AUTH_DEV_CODES", "requires HTTP_ADDR bound to loopback")
+		}
+	}
 	if firstErr != nil {
 		return Config{}, firstErr
 	}

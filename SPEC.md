@@ -280,6 +280,21 @@ random token + Redis session
 
 JWT 作为替代方案讨论，不同时实现两套。
 
+当前接口：`POST /api/v1/auth/code`、`POST /api/v1/auth/login`、`POST /api/v1/auth/logout`、`GET /api/v1/users/me`。
+
+实现约束：
+
+- 手机号为 11 位中国大陆手机号格式，验证码为 6 位数字。
+- 开发验证码仅在 `AUTH_DEV_CODES=true` 且 HTTP 绑定回环地址时启用；默认关闭，尚未接入真实短信服务。
+- 验证码默认有效期 5 分钟、重发冷却 1 分钟、最多 5 次错误尝试，校验成功后原子删除。
+- Token 由 32 字节密码学随机数生成，Redis 使用 Token 的 SHA-256 作为 key 的一部分；Session 默认固定有效期 30 分钟，读取不续期。
+- 首次登录基于手机号唯一索引创建用户；并发登录不创建重复账号。
+- 鉴权通过 Authorization Bearer Header，拒绝从 URL 查询参数读取 Token。
+- 凭据无效、过期或已退出返回 401；依赖故障返回 503，请求超时返回 504。
+- 认证接口响应设置 `Cache-Control: no-store`，日志不记录手机号、验证码或 Token。
+
+请求与响应示例见 [认证接口](docs/api/auth.md)。
+
 ---
 
 ## 13. Observability

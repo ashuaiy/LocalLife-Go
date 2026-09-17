@@ -13,7 +13,7 @@ import (
 )
 
 // Serve binds before starting Hertz, propagates startup errors and drains on cancellation.
-func Serve(ctx context.Context, cfg config.Config, logger *slog.Logger, checks map[string]Check) error {
+func Serve(ctx context.Context, cfg config.Config, logger *slog.Logger, checks map[string]Check, routes ...func(*server.Hertz)) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -22,7 +22,7 @@ func Serve(ctx context.Context, cfg config.Config, logger *slog.Logger, checks m
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
-	return serveListener(ctx, cfg, logger, checks, ln)
+	return serveListener(ctx, cfg, logger, checks, ln, routes...)
 }
 
 type readyListener struct {
@@ -36,10 +36,13 @@ func (l *readyListener) Accept() (net.Conn, error) {
 	return l.Listener.Accept()
 }
 
-func serveListener(ctx context.Context, cfg config.Config, logger *slog.Logger, checks map[string]Check, ln net.Listener) error {
+func serveListener(ctx context.Context, cfg config.Config, logger *slog.Logger, checks map[string]Check, ln net.Listener, routes ...func(*server.Hertz)) error {
 	defer ln.Close()
 	listener := &readyListener{Listener: ln, ready: make(chan struct{})}
 	h := NewServer(cfg, logger, checks, server.WithListener(listener))
+	for _, register := range routes {
+		register(h)
+	}
 	done := make(chan error, 1)
 	go func() { done <- h.Run() }()
 	// Initialization has no blocking user hooks. Wait until it either fails or
