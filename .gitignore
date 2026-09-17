@@ -1,0 +1,6 @@
+.cache/
+bin/
+.env
+*.log
+coverage.out
+.worktrees/

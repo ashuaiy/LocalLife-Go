@@ -1,0 +1,29 @@
+name: locallife-go-test
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: locallife_test
+      MYSQL_USER: locallife
+      MYSQL_PASSWORD: locallife_dev
+      MYSQL_ROOT_PASSWORD: locallife_test_root
+    ports:
+      - "127.0.0.1:13306:3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysql --host=127.0.0.1 --user=\"$$MYSQL_USER\" --database=\"$$MYSQL_DATABASE\" --execute='SELECT 1' --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
+  redis:
+    image: redis:7.4
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:16379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
