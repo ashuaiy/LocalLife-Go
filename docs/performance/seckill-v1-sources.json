@@ -1,0 +1,62 @@
+[
+  {
+    "path": "go.mod",
+    "sha256": "fbaaa0e75916d299a1d881e43a9aa916aaa86f64d23eeecfea5fad65c3cecac0"
+  },
+  {
+    "path": "go.sum",
+    "sha256": "9b2d840d5c61bf4261565a6eb8c0c732cca9e39bbf4380f1f07581630cd8bee4"
+  },
+  {
+    "path": "docker-compose.test.yml",
+    "sha256": "2c2fd1810ac2bacbc3f3dcea421f6aa25de8086e0591d0d3e47e0ca7fc30fa07"
+  },
+  {
+    "path": "internal/app/server.go",
+    "sha256": "3e5ca41774815f6430212de2c7b630928885ece4f87bd78224204cf03f0ad8d3"
+  },
+  {
+    "path": "internal/middleware/http.go",
+    "sha256": "42d8e27b90fa17ec0c39daf1ad5cc941aeeb2c289511480da468ef5913c574db"
+  },
+  {
+    "path": "internal/middleware/auth.go",
+    "sha256": "c67f3d4538404369c38729187fd1283b2932f133f1ae270fc8b8e94ca65a9f35"
+  },
+  {
+    "path": "internal/config/config.go",
+    "sha256": "e6fbffde949a09009433a7580d73f5d65435dfa3588d0f43492d1e38f3a232e3"
+  },
+  {
+    "path": "internal/platform/connections.go",
+    "sha256": "6c865bae48cdd50e7ac966310dc84dd753e921fdd6b0fc7081de324baedc1b27"
+  },
+  {
+    "path": "internal/service/auth.go",
+    "sha256": "b14fba7836dc64d290d57dc24e140ca3ec0f2e310e55c93d70cd0f0f0f7e1bda"
+  },
+  {
+    "path": "internal/cache/auth.go",
+    "sha256": "773659677fb8821ddd53a7bde37efeda2023ac85585ca1bba1b4daa4b38d519a"
+  },
+  {
+    "path": "internal/service/order.go",
+    "sha256": "4f4ba07935045ab7a2fa06452dc16ccfd0f89c16b0bfbce0d35387d3211544ab"
+  },
+  {
+    "path": "internal/repository/order.go",
+    "sha256": "c3fb96674047ec15c485741e584b1e232e44012162a7218a09daee3a18329904"
+  },
+  {
+    "path": "internal/handler/order.go",
+    "sha256": "8b49c06f529dd0fe459dd9fdb71404694b34298cc7a59c66feb997db11abe4fe"
+  },
+  {
+    "path": "tests/integration/order_load_test.go",
+    "sha256": "6edca9cab2fcd318876abeae6198fc2a1084f5cabd66f47f1f7100cc49a7429a"
+  },
+  {
+    "path": "tests/integration/load_metrics_test.go",
+    "sha256": "ef952a0abd47b764966bcf6050cc7b752a1d3b8810d2b956cf10cc18d88a42d3"
+  }
+]

@@ -36,8 +36,12 @@ func (a *Auth) Register(h *server.Hertz) {
 }
 
 func decodeJSON(c *app.RequestContext, target any) error {
+	return decodeJSONLimit(c, target, 1024)
+}
+
+func decodeJSONLimit(c *app.RequestContext, target any, maxBytes int) error {
 	mediaType, _, err := mime.ParseMediaType(string(c.ContentType()))
-	if err != nil || mediaType != "application/json" || len(c.Request.Body()) > 1024 {
+	if err != nil || mediaType != "application/json" || len(c.Request.Body()) > maxBytes {
 		return apperror.New(apperror.Validation, nil)
 	}
 	decoder := json.NewDecoder(bytes.NewReader(c.Request.Body()))

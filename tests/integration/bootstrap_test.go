@@ -48,10 +48,10 @@ func TestBootstrap(t *testing.T) {
 	t.Run("schema and order constraints", func(t *testing.T) {
 		var version uint
 		var dirty bool
-		if err := deps.SQL.QueryRowContext(ctx, "SELECT version,dirty FROM schema_migrations").Scan(&version, &dirty); err != nil || version != 1 || dirty {
+		if err := deps.SQL.QueryRowContext(ctx, "SELECT version,dirty FROM schema_migrations").Scan(&version, &dirty); err != nil || version != 3 || dirty {
 			t.Fatalf("schema version=%d dirty=%t err=%v", version, dirty, err)
 		}
-		for _, table := range []string{"users", "shop_type", "shop", "blog", "follow", "voucher", "seckill_voucher", "voucher_order"} {
+		for _, table := range []string{"users", "shop_type", "shop", "blog", "blog_like", "follow", "voucher", "seckill_voucher", "voucher_order"} {
 			var count int
 			if err := deps.SQL.QueryRowContext(ctx, "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=? AND table_name=?", cfg.MySQL.Database, table).Scan(&count); err != nil || count != 1 {
 				t.Fatalf("missing %s: %v", table, err)

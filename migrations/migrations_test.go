@@ -33,3 +33,22 @@ func TestEmbeddedMigrationCanBeReadInBothDirections(t *testing.T) {
 		}
 	}
 }
+
+func TestBlogLikeMigrationIsAdditive(t *testing.T) {
+	source, err := iofs.New(Files, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	for _, read := range []func(uint) (io.ReadCloser, string, error){source.ReadUp, source.ReadDown} {
+		body, _, err := read(2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		contents, err := io.ReadAll(body)
+		_ = body.Close()
+		if err != nil || !strings.Contains(string(contents), "blog_like") || !strings.Contains(string(contents), "idx_blog_created") {
+			t.Fatalf("missing blog like table or list index: %v", err)
+		}
+	}
+}

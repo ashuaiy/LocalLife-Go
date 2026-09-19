@@ -14,6 +14,8 @@ func TestDescribeWrappedErrors(t *testing.T) {
 	}{
 		{Validation, 400}, {Unauthorized, 401}, {NotFound, 404}, {Conflict, 409}, {RateLimited, 429},
 		{Dependency, 503}, {Internal, 500}, {MethodNotAllowed, 405},
+		{Kind("activity_not_started"), 409}, {Kind("activity_ended"), 409},
+		{Kind("sold_out"), 409}, {Kind("already_purchased"), 409},
 	} {
 		t.Run(string(tc.kind), func(t *testing.T) {
 			cause := errors.New("password=private")

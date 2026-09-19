@@ -11,6 +11,7 @@ import (
 )
 
 type Config struct {
+	UploadDir         string
 	HTTP              HTTP
 	MySQL             MySQL
 	Redis             Redis
@@ -89,6 +90,7 @@ func LoadFrom(lookup func(string) (string, bool)) (Config, error) {
 		}
 		return value
 	}
+	cfg.UploadDir = required("UPLOAD_DIR", "uploads")
 	cfg.HTTP = HTTP{Addr: addr("HTTP_ADDR", "127.0.0.1:8080"), RequestTimeout: duration("HTTP_REQUEST_TIMEOUT", 3*time.Second)}
 	cfg.StartupTimeout = duration("STARTUP_TIMEOUT", 10*time.Second)
 	cfg.ShutdownTimeout = duration("SHUTDOWN_TIMEOUT", 10*time.Second)

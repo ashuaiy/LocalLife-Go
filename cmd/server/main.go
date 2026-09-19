@@ -43,8 +43,28 @@ func run(logger *slog.Logger) error {
 		}
 	}()
 	auth := service.NewAuth(repository.NewUser(deps.DB), cache.NewAuth(deps.Redis), cfg.Auth)
+	shop := service.NewShop(repository.NewShop(deps.DB), cache.NewShop(deps.Redis))
+	defer func() {
+		closeCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+		defer cancel()
+		if err := shop.Close(closeCtx); err != nil {
+			logger.Error("shop cache shutdown failed")
+		}
+	}()
+	geo := service.NewGeo(repository.NewShop(deps.DB), cache.NewGeo(deps.Redis))
+	followRepo := repository.NewFollow(deps.DB)
+	blogRepo := repository.NewBlog(deps.DB)
+	feed := service.NewFeed(followRepo, blogRepo, cache.NewFeed(deps.Redis))
+	follow := service.NewFollow(followRepo, repository.NewUser(deps.DB))
+	communityRepo := repository.NewCommunity(deps.DB)
+	communityStore := cache.NewCommunity(deps.Redis)
+	community := service.NewCommunity(communityRepo, communityStore)
+	media := service.NewMedia(cfg.UploadDir)
+	blog := service.NewBlog(blogRepo, repository.NewShop(deps.DB), feed).WithNotifications(communityRepo, communityStore)
+	voucher := service.NewVoucher(repository.NewVoucher(deps.DB))
+	order := service.NewOrder(repository.NewOrder(deps.DB))
 	return app.Serve(ctx, cfg, logger, map[string]app.Check{
 		"mysql": deps.SQL.PingContext,
 		"redis": func(ctx context.Context) error { return deps.Redis.Ping(ctx).Err() },
-	}, handler.NewAuth(auth).Register)
+	}, handler.NewAuth(auth).Register, handler.NewShop(shop).Register, handler.NewGeo(geo).Register, handler.NewBlog(blog, auth).Register, handler.NewFollow(follow, auth).Register, handler.NewFeed(feed, auth).Register, handler.NewVoucher(voucher).Register, handler.NewOrder(order, auth).Register, handler.NewCommunity(community, media, auth).Register)
 }

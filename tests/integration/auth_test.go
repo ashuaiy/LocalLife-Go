@@ -19,7 +19,7 @@ import (
 	"github.com/ashuaiy/local-life-go/internal/repository"
 )
 
-func authDependencies(t *testing.T) (*platform.Connections, context.Context) {
+func authDependencies(t testing.TB) (*platform.Connections, context.Context) {
 	t.Helper()
 	if os.Getenv("RUN_INTEGRATION") != "1" {
 		t.Skip("set RUN_INTEGRATION=1; see docs/testing.md")

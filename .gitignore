@@ -4,3 +4,5 @@ bin/
 *.log
 coverage.out
 .worktrees/
+.local/
+uploads/

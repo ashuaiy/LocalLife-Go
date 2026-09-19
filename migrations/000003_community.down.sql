@@ -1,0 +1,3 @@
+ALTER TABLE blog DROP COLUMN images;
+ALTER TABLE users DROP COLUMN city, DROP COLUMN introduce, DROP COLUMN gender,
+ DROP COLUMN birthday, DROP COLUMN credits, DROP COLUMN level;

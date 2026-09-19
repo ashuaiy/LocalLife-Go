@@ -1,0 +1,9 @@
+goos: linux
+goarch: amd64
+pkg: github.com/ashuaiy/local-life-go/tests/integration
+cpu: AMD Ryzen 5 9600X 6-Core Processor
+BenchmarkSeckillLuaAdmission-12    	    5988	    216131 ns/op	     768 B/op	      27 allocs/op
+BenchmarkSeckillLuaAdmission-12    	    6006	    236453 ns/op	     768 B/op	      27 allocs/op
+BenchmarkSeckillLuaAdmission-12    	    4764	    240711 ns/op	     768 B/op	      27 allocs/op
+PASS
+ok  	github.com/ashuaiy/local-life-go/tests/integration	4.129s
