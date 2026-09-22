@@ -101,12 +101,13 @@ MySQL 保存用户、商户、内容、关注和订单等实体与关系。Redis
 
 接口补充见 [资料、签到与社区接口](docs/api/community.md) 与 [异步秒杀](docs/api/async-order.md)，来源与匹配范围见 [迁移清单](docs/migration.md)。参考实现的 MIT 许可保留在 [第三方许可证](docs/third-party/xzdp-go-master-LICENSE.txt)。
 
-## 后续功能
+## 当前版本边界
 
-以下完整能力尚未接入当前业务：
+当前功能范围已冻结，以缺陷修复和回归验证为主。以下能力尚未实现，不属于当前版本的运行前提：
 
 | 模块 | 功能 |
 | --- | --- |
 | 用户 | 短信通道接入 |
+| 可靠投递与保护 | Feed Outbox、秒杀入口限流与积压保护 |
 | 订单运维与评测 | 积压告警、活动归档、Redis 数据丢失后的人工对账工具、同条件端到端性能对照 |
 | 可观测性 | Prometheus 指标、OpenTelemetry 链路追踪与 pprof |
