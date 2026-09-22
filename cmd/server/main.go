@@ -63,8 +63,9 @@ func run(logger *slog.Logger) error {
 	blog := service.NewBlog(blogRepo, repository.NewShop(deps.DB), feed).WithNotifications(communityRepo, communityStore)
 	voucher := service.NewVoucher(repository.NewVoucher(deps.DB))
 	order := service.NewOrder(repository.NewOrder(deps.DB))
+	asyncOrder := service.NewAsyncOrder(repository.NewAsyncOrder(deps.DB), cache.NewSeckill(deps.Redis))
 	return app.Serve(ctx, cfg, logger, map[string]app.Check{
 		"mysql": deps.SQL.PingContext,
 		"redis": func(ctx context.Context) error { return deps.Redis.Ping(ctx).Err() },
-	}, handler.NewAuth(auth).Register, handler.NewShop(shop).Register, handler.NewGeo(geo).Register, handler.NewBlog(blog, auth).Register, handler.NewFollow(follow, auth).Register, handler.NewFeed(feed, auth).Register, handler.NewVoucher(voucher).Register, handler.NewOrder(order, auth).Register, handler.NewCommunity(community, media, auth).Register)
+	}, handler.NewAuth(auth).Register, handler.NewShop(shop).Register, handler.NewGeo(geo).Register, handler.NewBlog(blog, auth).Register, handler.NewFollow(follow, auth).Register, handler.NewFeed(feed, auth).Register, handler.NewVoucher(voucher).Register, handler.NewOrder(order, auth).Register, handler.NewAsyncOrder(asyncOrder, auth).Register, handler.NewCommunity(community, media, auth).Register)
 }

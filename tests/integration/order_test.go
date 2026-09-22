@@ -50,7 +50,7 @@ func orderFixtures(t *testing.T, deps *platform.Connections, ctx context.Context
 	t.Cleanup(func() {
 		clean, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		for _, query := range []string{"DELETE FROM voucher_order WHERE voucher_id IN ?", "DELETE FROM seckill_voucher WHERE voucher_id IN ?", "DELETE FROM voucher WHERE id IN ?"} {
+		for _, query := range []string{"DELETE FROM seckill_result WHERE voucher_id IN ?", "DELETE FROM voucher_order WHERE voucher_id IN ?", "DELETE FROM seckill_voucher WHERE voucher_id IN ?", "DELETE FROM voucher WHERE id IN ?"} {
 			if err := deps.DB.WithContext(clean).Exec(query, ids).Error; err != nil {
 				t.Error(err)
 			}

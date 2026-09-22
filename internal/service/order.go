@@ -55,6 +55,9 @@ func (s *Order) Place(ctx context.Context, userID, voucherID uint64) (OrderView,
 			return err
 		}
 		// Read the authoritative clock after acquiring the lock, including any lock wait.
+		if activity.AsyncState != 0 {
+			return apperror.New(apperror.Conflict, nil)
+		}
 		now, err := tx.Now(ctx)
 		if err != nil {
 			return err

@@ -15,12 +15,15 @@ type Voucher struct {
 func (Voucher) TableName() string { return "voucher" }
 
 type SeckillVoucher struct {
-	VoucherID uint64 `gorm:"primaryKey;autoIncrement:false"`
-	Stock     int64
-	BeginTime time.Time
-	EndTime   time.Time
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	AsyncState      uint8
+	AsyncGeneration string
+	AsyncCapacity   int64
+	VoucherID       uint64 `gorm:"primaryKey;autoIncrement:false"`
+	Stock           int64
+	BeginTime       time.Time
+	EndTime         time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func (SeckillVoucher) TableName() string { return "seckill_voucher" }

@@ -20,3 +20,18 @@ type SeckillEvent struct {
 	Generation string
 	AcceptedAt time.Time
 }
+
+// SeckillResult is committed in the same transaction as the order and stock.
+type SeckillResult struct {
+	VoucherID  uint64 `gorm:"primaryKey;autoIncrement:false"`
+	EventID    string `gorm:"primaryKey"`
+	Generation string
+	UserID     uint64
+	OrderID    *uint64
+	Status     string
+	Reason     string
+	AcceptedAt time.Time
+	CreatedAt  time.Time
+}
+
+func (SeckillResult) TableName() string { return "seckill_result" }

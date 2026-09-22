@@ -2,7 +2,7 @@
 
 以**黑马点评的本地生活业务模型**为基础，使用 **Go、CloudWeGo Hertz、GORM、MySQL 和 Redis** 重构的服务端项目。采用模块化单体架构，围绕用户、商户、探店内容、关注动态和优惠券构建业务模块。
 
-> 当前为可运行的后端 API 基础版本，覆盖认证、商户、附近商户、图文笔记、点赞关注、Feed、签到、优惠券与订单。秒杀采用 MySQL 同步事务；Redis Stream 用于点赞通知，异步订单链路尚未接入。
+> 可运行的本地生活后端 API，覆盖认证、商户、附近商户、图文笔记、点赞关注、Feed、签到、优惠券与订单。秒杀默认使用 MySQL 同步事务，也支持按活动启用 Redis Lua + Stream 异步下单、幂等消费、Pending 恢复与失败补偿。
 
 ## 技术框架
 
@@ -12,7 +12,7 @@
 | CloudWeGo Hertz | HTTP 服务、路由和中间件，显式使用标准网络 transport |
 | GORM | 数据库访问 |
 | MySQL | 业务数据持久化、事务与数据约束 |
-| Redis | 验证码、会话、商户缓存、GEO、Feed ZSET、签到 Bitmap 与通知 Stream |
+| Redis | 验证码、会话、商户缓存、GEO、Feed ZSET、签到 Bitmap、通知及订单 Stream |
 | golang-migrate | 版本化 SQL 数据库迁移 |
 | slog | 结构化访问日志 |
 | Docker Compose | 本地开发与集成测试依赖编排 |
@@ -45,6 +45,8 @@ MySQL 保存用户、商户、内容、关注和订单等实体与关系。Redis
 - **动态 Feed**：发布后向关注者推送 Redis ZSET，使用 5 分钟快照与同分游标分页，支持从 MySQL 受控重建。
 - **优惠券查询**：券详情、按商户筛选与分页，区分普通券和秒杀券；展示活动时间、库存及未开始、进行中、售罄、已结束状态。
 - **事务秒杀**：活动锁与数据库时间校验、条件扣库存、订单唯一约束；扣库存和创建订单在同一 MySQL 事务内完成。
+- **异步秒杀**：受控启用未使用的活动，同步路径随即封闭；Lua 原子预扣库存、购买去重与入队，HTTP 202 返回受理票据，独立消费者事务落库。
+- **订单恢复**：结果表与订单同事务提交，重复投递不重复扣减；XAUTOCLAIM 接管超时 Pending，终态失败执行幂等库存补偿，结果接口仅查询当前用户。
 - **个人订单**：登录用户查询本人订单详情和分页列表，支持按优惠券筛选；拒绝读取其他用户的订单。
 - **配置管理**：环境变量加载、类型解析与参数校验。
 - **HTTP 服务**：Hertz 路由、统一 JSON 响应与错误分类。
@@ -88,6 +90,8 @@ MySQL 保存用户、商户、内容、关注和订单等实体与关系。Redis
 | GET | `/api/v1/vouchers` | 按商户筛选并分页查询优惠券 |
 | GET | `/api/v1/vouchers/:id` | 查询优惠券详情、库存与活动状态 |
 | POST | `/api/v1/vouchers/:id/seckill` | 当前登录用户参加秒杀并事务下单 |
+| POST | `/api/v1/vouchers/:id/seckill-async` | 异步活动预留库存并返回 202 受理票据 |
+| GET | `/api/v1/vouchers/:id/seckill-result` | 本人异步受理结果：等待、已创建或失败 |
 | GET | `/api/v1/orders` | 分页查询本人订单，可按券筛选 |
 | GET | `/api/v1/orders/:id` | 查询本人订单详情 |
 | GET | `/healthz` | 服务存活检查 |
@@ -95,7 +99,7 @@ MySQL 保存用户、商户、内容、关注和订单等实体与关系。Redis
 
 本人资料、退出、签到、内容发布与删除、图片上传、点赞操作、关注操作、共同关注、Feed、通知、下单与订单查询通过 `Authorization: Bearer <token>` 鉴权；公开资料、商户、公开内容、点赞用户列表、已上传图片与优惠券查询无需登录。接口契约见 [用户认证](docs/api/auth.md)、[商户查询](docs/api/shop.md)、[附近商户](docs/api/geo.md)、[探店点赞](docs/api/blog.md)、[关注动态](docs/api/feed.md)、[优惠券](docs/api/voucher.md) 与 [秒杀订单](docs/api/order.md)，模块职责见 [架构说明](docs/architecture.md)，示例数据与启动方法见 [本地运行](docs/quickstart.md)。
 
-接口补充见 [资料、签到与社区接口](docs/api/community.md)，来源与匹配范围见 [迁移清单](docs/migration.md)。参考实现的 MIT 许可保留在 [第三方许可证](docs/third-party/xzdp-go-master-LICENSE.txt)。
+接口补充见 [资料、签到与社区接口](docs/api/community.md) 与 [异步秒杀](docs/api/async-order.md)，来源与匹配范围见 [迁移清单](docs/migration.md)。参考实现的 MIT 许可保留在 [第三方许可证](docs/third-party/xzdp-go-master-LICENSE.txt)。
 
 ## 后续功能
 
@@ -104,5 +108,5 @@ MySQL 保存用户、商户、内容、关注和订单等实体与关系。Redis
 | 模块 | 功能 |
 | --- | --- |
 | 用户 | 短信通道接入 |
-| 异步订单 | 已有内部 Lua 受理组件；HTTP 异步入口、订单消费者、幂等恢复与失败补偿尚未接入 |
+| 订单运维与评测 | 积压告警、活动归档、Redis 数据丢失后的人工对账工具、同条件端到端性能对照 |
 | 可观测性 | Prometheus 指标、OpenTelemetry 链路追踪与 pprof |

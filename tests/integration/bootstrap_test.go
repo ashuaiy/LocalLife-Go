@@ -48,7 +48,7 @@ func TestBootstrap(t *testing.T) {
 	t.Run("schema and order constraints", func(t *testing.T) {
 		var version uint
 		var dirty bool
-		if err := deps.SQL.QueryRowContext(ctx, "SELECT version,dirty FROM schema_migrations").Scan(&version, &dirty); err != nil || version != 3 || dirty {
+		if err := deps.SQL.QueryRowContext(ctx, "SELECT version,dirty FROM schema_migrations").Scan(&version, &dirty); err != nil || version != 4 || dirty {
 			t.Fatalf("schema version=%d dirty=%t err=%v", version, dirty, err)
 		}
 		for _, table := range []string{"users", "shop_type", "shop", "blog", "blog_like", "follow", "voucher", "seckill_voucher", "voucher_order"} {

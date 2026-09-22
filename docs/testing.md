@@ -1,5 +1,18 @@
 # 基础框架与业务模块验证
 
+## 异步秒杀验收（2026-09-22）
+
+- 新迁移版本 4：活动模式/generation/初始容量和 `seckill_result`，已有同步活动默认保持模式 0。
+- `TestAsyncOrder*` 真实 MySQL/Redis：30 个用户、60 次并发请求争抢 10 份库存，最终 10 个唯一订单；提交后未 ACK 的消息重投不重复扣减；失败补偿重复执行仍只回补一次。
+- SQL 最后一步结果插入触发唯一约束失败时，库存和订单整体回滚，Pending 保留，移除注入冲突后重试成功；不会对暂时数据库错误提前回补 Redis。
+- 验证初始化中断续跑、拒绝已有订单的活动切换模式、Redis 丢失不自动补库、generation 不符及缺少消费组时拒绝受理。
+- 验证坏消息保留而有效消息继续、消费者处理及取消退出、HTTP 202/结果状态/本人隔离/注销后 401。HTTP 链路包含真实 Session、SQL 和 Redis；请求通过 Hertz 测试引擎驱动。
+- Windows `scripts/check.ps1` 通过，包含真实依赖的整仓测试、格式检查、vet、build。
+- Docker Linux 完整 `go test -race ./... -count=1` 通过，集成包 6.119s；随后补充的真实 HTTP 测试单独以 Race 通过。该耗时不是性能提升证据。
+- 独立只读审查无阻塞问题；本轮测试使用隔离实例，未对开发实例自动启用活动。
+
+复跑：`docker compose -f docker-compose.test.yml run --rm test go test -race ./tests/integration -run TestAsyncOrder -count=1`。运行命令与故障恢复限制见 [异步秒杀](api/async-order.md)。
+
 ## 参考业务迁移验收（2026-09-18）
 
 - `TestCommunityMigration` 先在缺少接口时失败，再验证公开资料无手机号、共同关注、重复签到、图片上传读取与图文发布、热门/点赞列表、作者删除、点赞通知去重与游标续读。
@@ -46,7 +59,7 @@ Linux/macOS 在启动测试 Compose 后执行 `make integration`，完成后运�
 
 如果显式设置了 `RUN_INTEGRATION=1`，依赖不可用必须失败，不能静默 skip。数据库名必须以 `_test` 结尾。测试只在独立测试库应用迁移，业务样本插入事务最终 rollback；Redis 只清理本测试产生的随机 key，未使用 FLUSHDB。
 
-检查项：当前九张业务表、migration 版本和 dirty 状态、重复 migration no-op、数据库订单唯一约束、条件扣库存、非负库存约束、GORM context/pool、Redis 读写和 TTL、真实依赖的 readiness 及连接关闭后 503。
+检查项：核心业务表、migration 版本和 dirty 状态、重复 migration no-op、数据库订单唯一约束、条件扣库存、非负库存约束、GORM context/pool、Redis 读写和 TTL、真实依赖的 readiness 及连接关闭后 503；异步用例另外验证结果表与消费恢复。
 
 以上条目是基础设施与 schema 验证，**不能替代秒杀业务并发验收**。当前业务并发正确性结果见后面的 Seckill V1 记录；短时 HTTP 负载基线见 [秒杀负载报告](performance/seckill.md)，V2 对照与持续负载仍待后续阶段完成。
 

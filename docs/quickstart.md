@@ -53,7 +53,7 @@ go run ./cmd/server
 
 默认地址为 `http://127.0.0.1:8080`。另开终端查询：
 
-升级已有实例也需先执行 `go run ./cmd/migrate up`。当前迁移版本为 3，新增公开资料字段和笔记图片，不删除已有数据。上传目录通过 `UPLOAD_DIR` 指定（默认 `uploads`），需要写权限；该目录已被 Git 忽略。
+升级已有实例也需先执行 `go run ./cmd/migrate up`。当前迁移版本为 4，包含公开资料、笔记图片、异步活动模式和秒杀结果表，不删除已有数据。上传目录通过 `UPLOAD_DIR` 指定（默认 `uploads`），需要写权限；该目录已被 Git 忽略。
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8080/readyz
@@ -88,6 +88,10 @@ Invoke-RestMethod "http://127.0.0.1:8080/api/v1/orders?voucher_id=$voucherID" -H
 ```
 
 下单不带请求体；重复购买返回 409 且不再次扣库存。请使用示例秒杀券，普通券没有秒杀活动。活动过期不会因重新导入示例脚本而延期。响应、订单所有权和不确定提交结果的查询方式见 [秒杀订单接口](api/order.md)。
+
+## 可选：异步秒杀
+
+为尚无订单的活动执行 `go run ./cmd/seckill -mode enable -voucher-id ID`，另开终端加载相同环境后运行 `go run ./cmd/seckill -mode worker`。客户端改用 `/api/v1/vouchers/ID/seckill-async` 受理和 `/api/v1/vouchers/ID/seckill-result` 查询结果。先运行 `go run ./cmd/migrate up` 升级到迁移 4；完整流程和故障边界见 [异步秒杀](api/async-order.md)。
 
 ## Feed 索引恢复
 

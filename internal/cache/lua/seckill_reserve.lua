@@ -3,6 +3,16 @@ if redis.call('TYPE', KEYS[1]).ok ~= 'hash' or redis.call('TYPE', KEYS[2]).ok ~=
     return {'dependency_failure'}
 end
 local data = redis.call('HMGET', KEYS[1], 'version', 'generation', 'stock', 'capacity', 'begin_ms', 'end_ms')
+if ARGV[3] and data[2] ~= ARGV[3] then return {'dependency_failure'} end
+if ARGV[3] then
+    local found = false
+    for _, group in ipairs(redis.call('XINFO', 'GROUPS', KEYS[2])) do
+        for i = 1, #group, 2 do
+            if group[i] == 'name' and group[i + 1] == 'orders' then found = true end
+        end
+    end
+    if not found then return {'dependency_failure'} end
+end
 local function integer(raw)
     if not raw or not string.match(raw, '^%d+$') then return nil end
     local n = tonumber(raw)

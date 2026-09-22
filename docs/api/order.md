@@ -64,7 +64,10 @@
 | 409 | activity_ended | 活动已结束 |
 | 409 | already_purchased | 当前用户已经购买该券 |
 | 409 | sold_out | 库存不足 |
+| 409 | conflict | 活动正在启用或已经启用异步模式，请按活动配置选择入口 |
 | 503 | dependency_failure | MySQL、认证依赖或事务提交故障 |
 | 504 | timeout | 请求超时，包括等待数据库锁超时被请求 deadline 取消 |
 
 数据库自身的锁等待超时、死锁等未细分错误返回 503。具体时间窗与库存读取见 [优惠券接口](voucher.md)，事务设计见 [ADR 006](../adr/006-seckill-v1-transaction.md)。
+
+按活动启用的异步入口、202 受理语义、结果查询及恢复流程见 [异步秒杀](async-order.md)。同步与异步路径不会同时受理同一活动。

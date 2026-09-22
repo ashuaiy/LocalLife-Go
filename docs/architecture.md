@@ -54,11 +54,11 @@ cmd/shop-update -id ID -name NAME
 | `internal/handler` | 认证、商户、内容、关注、Feed 与优惠券请求解析、校验、响应映射 |
 | `internal/service` | 认证、商户缓存与 GEO、内容发布、点赞关注、Feed 推送、优惠券状态、下单事务编排与分页 |
 | `internal/repository` | GORM 持久化与查询、点赞关注关系、Service 事务端口的 SQL 实现 |
-| `internal/cache` | Redis 验证码脚本、会话、商户详情缓存、GEO 索引、Feed 快照与内部秒杀受理原语（尚未接入 HTTP） |
+| `internal/cache` | Redis 验证码脚本、会话、商户详情缓存、GEO 索引、Feed 快照、异步秒杀受理与订单队列 |
 | `internal/model` | 数据库实体 |
 | `pkg/apperror` | 与业务实现无关的错误分类及公开消息 |
 | `pkg/response` | `code/message/data/request_id` HTTP envelope |
-| `migrations` | 版本化 SQL 与编译时嵌入资源，当前九张业务表 |
+| `migrations` | 版本化 SQL 与编译时嵌入资源，当前十张业务表 |
 | `tests/integration` | 真实 MySQL/Redis 的显式 opt-in 测试 |
 
 Handler → Service → Repository 传递 `context.Context`，GORM 使用 `WithContext(ctx)`，Redis 调用带取消和超时的 context。商户共享重建任务由服务生命周期管理；请求取消只结束该请求的等待。Handler 不直接执行 SQL。健康检查是基础设施入口，不承载业务。
@@ -81,6 +81,7 @@ HTTP deadline 是协作式取消：Handler 和底层 I/O 必须遵守 context。
 - 时间使用 UTC，`DATETIME(3)` 保留毫秒；金额使用整数分。
 - `voucher_order` 有 `UNIQUE(user_id, voucher_id)`；`seckill_voucher` 有非负库存和有效时间窗约束。
 - 秒杀 Service 在 RC 事务内编排活动锁、锁后数据库时间校验、重复检查、条件扣库存和订单创建；Repository 实现事务端口，失败回滚，提交成功才返回订单。
+- 异步活动通过同一活动锁切换模式；Redis Lua 受理与 Stream 排队，独立消费者将库存、订单、结果写入同一个 MySQL 事务。最终结果持久化在 SQL，HTTP 鉴权仍依赖 Redis；尚未落库的受理依赖 Redis 持久化，详见 [ADR 007](adr/007-async-seckill.md)。
 - 显式外键保证关系完整性。业务增长后若要移除外键，必须通过新迁移和 ADR 说明一致性责任如何转移。
 - 普通应用连接关闭 `multiStatements`；迁移单独连接开启它。
 - 不调用 GORM AutoMigrate。DDL 失败可能产生部分已提交表，迁移库会保留 dirty 标记；修复前检查实际 schema，不自动 force 或删除库。
